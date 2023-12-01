@@ -14,14 +14,26 @@ val TXT_FIGURES = mapOf(
  * Find last occurrence of this regex in given input text.
  * @return `null` if we cannot find any occurrence.
  */
-fun Regex.findLast(input: CharSequence) = findAll(input).lastOrNull()
+fun Regex.findLast(input: CharSequence, startIndex: Int = 0) : MatchResult? {
+    var lastFind = findAll(input, startIndex).lastOrNull() ?: return null
+    // Safety: if two patterns overlap, detection sequence might have failed to detect it.
+    // This loop search for such patterns and get the real last pattern.
+    var i = lastFind.range.first + 1
+    val end = lastFind.range.last
+    do {
+        val next = find(input, i)
+        if (next != null) {
+            lastFind = next
+            i = next.range.first
+        }
+    } while (i++ <= end)
+    return lastFind
+}
 
 /**
  * Try to fetch value of the first group in this match. Raise an error if it does not exist.
  */
-fun MatchResult?.firstGroup() = checkNotNull(this?.groupValues?.getOrNull(1)) {
-    "Regex group detection failed. Time to search for a bug !"
-}
+fun MatchResult?.firstGroup() = this?.groupValues?.getOrNull(1)
 
 fun main() {
     fun List<String>.decipher(
@@ -31,8 +43,12 @@ fun main() {
     ) : Int = fold(0) {
         sum, line
         ->
-        val firstDigit = firstDigitRegex.find(line).firstGroup().let { mappingTable?.get(it) ?: it }
-        val lastDigit = (lastDigitRegex?.find(line) ?: firstDigitRegex.findLast(line)).firstGroup().let { mappingTable?.get(it) ?: it }
+        val firstFind = checkNotNull(firstDigitRegex.find(line))
+        val nextStartIdx = firstFind.range.last +1
+        val firstDigit = checkNotNull(firstFind.firstGroup(), {"first digit not found"}).let { mappingTable?.get(it) ?: it }
+        val lastDigit = (lastDigitRegex?.find(line, nextStartIdx) ?: firstDigitRegex.findLast(line, nextStartIdx)).firstGroup()
+            ?.let { mappingTable?.get(it) ?: it }
+            ?: firstDigit
         sum + "$firstDigit$lastDigit".toInt()
     }
 
