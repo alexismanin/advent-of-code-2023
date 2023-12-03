@@ -9,6 +9,7 @@ fun main() {
     val input = readInput("Day03")
     val schema = parseSchematics(input)
     part1(schema).println()
+    part2(schema).println()
 }
 
 /*
@@ -16,12 +17,21 @@ fun main() {
  */
 
 fun part1(schema: Schematics) : Int = schema.findNumbers(true)
-                                            .onEach { schema.subset(it.first).println() }
                                             .map { it.second }
                                             .sum()
 
-fun part2() : Int {
-    TODO()
+fun part2(schema: Schematics) : Long {
+    return schema.findNumbers(true)
+          .flatMap { (loc, n) ->
+              schema.adjacent(loc)
+                  .mapNotNull { (loc, token) -> if (token is Symbol && token.value == '*') loc to n else null }
+          }
+        .groupBy({ it.first }, {it.second })
+        .values
+        .asSequence()
+        .filter { it.size == 2 }
+        .map { it[0].toLong() * it[1] }
+        .sum()
 }
 
 /*
@@ -128,7 +138,7 @@ class Schematics(private val content: Matrix<Token>) {
     /**
      * @return Values adjacent to the given row and column.
      */
-    fun adjacent(location: Location, margin: Int = 1) : Sequence<Token> {
+    fun adjacent(location: Location, margin: Int = 1) : Sequence<Pair<Location, Token>> {
         val (row, col, span) = location
         val minRow = max(0, row-margin)
         val maxRow = min(content.nbRows-1, row+margin)
@@ -139,20 +149,20 @@ class Schematics(private val content: Matrix<Token>) {
         return sequence {
             // lines before location
             for (i in minRow..<row) {
-                for (j in minCol..maxCol) yield(content[i, j])
+                for (j in minCol..maxCol) yield(Location(i, j, 1) to content[i, j])
             }
 
             // same line, before location
-            for (j in minCol..<col) yield(content[row, j])
+            for (j in minCol..<col) yield(Location(row, j, 1) to content[row, j])
             // same line, after location
             if (maxCol > locEndInclusive) {
-                for (j in locEndInclusive+1..maxCol) yield(content[row, j])
+                for (j in locEndInclusive+1..maxCol) yield(Location(row, j, 1) to content[row, j])
             }
 
             // lines after location
             if (row < maxRow) {
                 for (i in (row+1)..maxRow) {
-                    for (j in minCol..maxCol) yield(content[i, j])
+                    for (j in minCol..maxCol) yield(Location(i, j, 1) to content[i, j])
                 }
             }
         }
@@ -161,7 +171,7 @@ class Schematics(private val content: Matrix<Token>) {
     fun findNumbers(partsOnly: Boolean) : Sequence<Pair<Location, Int>> {
         var numberLocations = content.findMatches(true) { it is Figure }
          if (partsOnly) numberLocations = numberLocations.filter {
-             adjacent(it).any { token -> token is Symbol }
+             adjacent(it).any { (_, token) -> token is Symbol }
          }
 
         return numberLocations.map {
