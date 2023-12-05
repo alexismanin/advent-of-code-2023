@@ -19,12 +19,6 @@ fun part2(cards: List<Card>) : Int {
     // 1. Build number of matches for each card
     val matches = cards.associate { it.id to it.matches().count() }
 
-    fun <T> Sequence<T>.expand(action: (T) -> Sequence<T>) : Sequence<T> {
-        return flatMap {
-            sequenceOf(it) + action(it).expand(action)
-        }
-    }
-
     val occurrences = matches.asSequence()
         .map { (key, value) -> key to value }
         .expand {

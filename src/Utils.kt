@@ -19,3 +19,12 @@ fun String.md5() = BigInteger(1, MessageDigest.getInstance("MD5").digest(toByteA
  * The cleaner shorthand for printing output.
  */
 fun Any?.println() = println(this)
+
+/**
+ * Mimic Reactor `Publisher<T>.expand(Function<T, Publisher<T>)`
+ */
+fun <T> Sequence<T>.expand(action: (T) -> Sequence<T>) : Sequence<T> {
+    return flatMap {
+        sequenceOf(it) + action(it).expand(action)
+    }
+}
