@@ -88,6 +88,13 @@ class Matrix<T>(val nbRows: Int, val nbCols: Int, private val content: Array<T>)
             }
             .joinToString(System.lineSeparator())
     }
+
+    fun cross(center: Location) : Sequence<Location> = sequence {
+        if (center.row > 0) yield(center.copy(row = center.row-1))
+        if (center.col < nbCols-1) yield(center.copy(col = center.col+1))
+        if (center.row < nbRows -1) yield(center.copy(row = center.row -1))
+        if (center.col > 0) yield(center.copy(col = center.col -1))
+    }
 }
 
 data class Location(val row: Int, val col: Int, val rowSpan: Int = 1) : Comparable<Location> {
