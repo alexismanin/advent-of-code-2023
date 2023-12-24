@@ -95,6 +95,43 @@ class Matrix<T>(val nbRows: Int, val nbCols: Int, private val content: Array<T>)
         if (center.row < nbRows -1) yield(center.copy(row = center.row -1))
         if (center.col > 0) yield(center.copy(col = center.col -1))
     }
+
+    /**
+     * @return Values adjacent to the given row and column.
+     */
+    fun adjacent(location: Location, margin: Int = 1) : Sequence<Pair<Location, T>> {
+        val (row, col, span) = location
+        val minRow = max(0, row-margin)
+        val maxRow = min(nbRows-1, row+margin)
+        val minCol = max(0, col-margin)
+        val locEndInclusive = col+(span-1)
+        val maxCol = min(nbCols-1, locEndInclusive+margin)
+
+        return sequence {
+            // lines before location
+            for (i in minRow..<row) {
+                for (j in minCol..maxCol) yield(Location(i, j, 1) to get(i, j))
+            }
+
+            // same line, before location
+            for (j in minCol..<col) yield(Location(row, j, 1) to get(row, j))
+            // same line, after location
+            if (maxCol > locEndInclusive) {
+                for (j in locEndInclusive+1..maxCol) yield(Location(row, j, 1) to get(row, j))
+            }
+
+            // lines after location
+            if (row < maxRow) {
+                for (i in (row+1)..maxRow) {
+                    for (j in minCol..maxCol) yield(Location(i, j, 1) to get(i, j))
+                }
+            }
+        }
+    }
+
+    fun copy(): Matrix<T> {
+        return Matrix(nbRows, nbCols, content.copyOf())
+    }
 }
 
 data class Location(val row: Int, val col: Int, val rowSpan: Int = 1) : Comparable<Location> {
