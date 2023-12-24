@@ -3,14 +3,26 @@ package day10
 import Location
 import Matrix
 import day10.Direction.*
+import println
 import readInput
 
-fun main() {
-    val input = readInput("Day10_test")
-    val map = parse(input)
+const val BOLD = "\u001B[1m"
+const val GREEN = "\u001B[32m"
+const val BLUE = "\u001B[34m"
+const val RED="\u001B[31m"
+const val RESET ="\u001B[0m"
 
-    println(map)
-    println(map.path().joinToString(System.lineSeparator()))
+fun main() {
+    val input = readInput("Day10")
+    val map = parse(input).identifyPath()
+
+    map.println()
+    part1(map).println()
+}
+
+fun part1(map: PipeMap) : Int {
+    val nbMoves = map.path().count()
+    return if (nbMoves % 2 == 0) nbMoves / 2 else nbMoves / 2 + 1
 }
 
 enum class Direction(val rowMove: Int, val colMove: Int) {
@@ -30,12 +42,12 @@ enum class Pipe(val p1: Direction, val p2: Direction) {
 sealed interface Tile
 data object Ground : Tile
 data object Start: Tile
-data class PipeTile(val pipe: Pipe) : Tile
+data class PipeTile(val pipe: Pipe, val onPath: Boolean = false) : Tile
 
 fun Tile.repr() = when (this) {
     is Ground -> "."
-    is Start -> "S"
-    is PipeTile -> pipe.name
+    is Start -> "${BOLD}${GREEN}S${RESET}"
+    is PipeTile -> if (onPath) "${RED}${pipe.name}${RESET}" else "${BLUE}${pipe.name}${RESET}"
 }
 
 fun Location.move(direction: Direction) = copy(row + direction.rowMove, col + direction.colMove)
@@ -62,6 +74,12 @@ class PipeMap(val tiles: Matrix<Tile>, val start: Location) {
                 }
             }
             .map { it.second }
+    }
+
+    fun identifyPath(): PipeMap {
+        val newTiles = tiles.copy()
+        path().forEach { (loc, pipe) -> newTiles[loc.row, loc.col] = PipeTile(pipe, true) }
+        return PipeMap(newTiles, start)
     }
 }
 
